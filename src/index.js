@@ -7,6 +7,13 @@ import { createClient } from 'redis'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const clientDir = resolve(__dirname, '..', 'dist', 'client')
 
+// node-redis only reads host/port from the nested socket object and silently
+// ignores them at the top level, so lift the documented flat fields into place
+function toClientOptions({ host, port, ...rest } = {}) {
+  if (rest.url || (host === undefined && port === undefined)) return rest
+  return { ...rest, socket: { host: host ?? '127.0.0.1', port: port ?? 6379, ...rest.socket } }
+}
+
 function normalizeCellGraphs(cells) {
   if (!cells) return null
   if (typeof cells.cell === 'function') return { default: cells }
@@ -64,7 +71,7 @@ export function prsmDevtools(options = {}) {
   let traceRedis = null
   if (options.traceStore) {
     const ts = options.traceStore
-    traceRedis = typeof ts.set === 'function' && typeof ts.get === 'function' ? ts : createClient(ts)
+    traceRedis = typeof ts.set === 'function' && typeof ts.get === 'function' ? ts : createClient(toClientOptions(ts))
     if (!traceRedis.isOpen) {
       traceRedis.on?.('error', () => {})
       traceRedis.connect().catch(() => {})
