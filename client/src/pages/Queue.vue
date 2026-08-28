@@ -199,7 +199,20 @@ function fmtMs(value) {
   return `${Math.floor(value / 60_000)}m`
 }
 
+function workerState(s) {
+  if (s.paused) return { value: 'paused', tone: 'paused' }
+  if (s.active === false) return { value: 'outside window', tone: 'paused' }
+  return { value: 'running', tone: null }
+}
+
+function fmtWindow(w) {
+  if (!w) return 'always'
+  if (w.type === 'predicate') return 'predicate'
+  return `${w.from} - ${w.to}${w.tz ? ` ${w.tz}` : ''}`
+}
+
 const statusItems = computed(() => [
+  { label: 'Workers', ...workerState(snapshot.value) },
   { label: 'In-flight', value: stats.value.inFlight },
   { label: 'Queued', value: stats.value.depth },
   { label: 'Completed', value: sessionCounts.value.complete },
@@ -214,6 +227,7 @@ const configItems = computed(() => [
   { label: 'Delay', value: fmtMs(opts.value.delay) },
   { label: 'Max retries', value: opts.value.maxRetries ?? '-' },
   { label: 'Group concurrency', value: opts.value.groups?.concurrency ?? '-' },
+  { label: 'Window', value: fmtWindow(snapshot.value.window) },
 ])
 
 const HISTORY_VARIANT = {
